@@ -10,15 +10,15 @@ PCB *criaProcesso(int pid, int duracao, int prioridade, int nThreads, int startT
 void destroiProcesso(PCB *pcb);
 void setEstadoProcesso(PCB *pcb, EstadoProcesso state);
 int consomeTempoProcesso(PCB *pcb, int milisegundos);
-void setThreadId(PCB *pcb, int indice, pthread_t threadId);
-pthread_t getThreadId(PCB *pcb, int indice);
-int getPid(const PCB *pcb);
-int getPrioridade(const PCB *pcb);
-int getTempoRestante(PCB *pcb);
+EstadoProcesso aguardaExecucaoOuFimProcesso(PCB *pcb);
+void setThreadIdProcesso(PCB *pcb, int indice, pthread_t threadId);
+pthread_t getThreadIdProcesso(PCB *pcb, int indice);
+int getPidProcesso(PCB *pcb);
+int getPrioridadeProcesso(PCB *pcb);
+int getTempoRestanteProcesso(PCB *pcb);
 EstadoProcesso getEstadoProcesso(PCB *pcb);
-int getStartTime(const PCB *pcb);
-int getNumeroThreads(const PCB *pcb);
-pthread_t *getThreadIds(PCB *pcb);
+int getStartTimeProcesso(PCB *pcb);
+int getNumeroThreadsProcesso(PCB *pcb);
 
 
 #endif

@@ -23,8 +23,11 @@ struct pcb
 PCB *criaProcesso(int pid, int tempoTotal, int prioridade, int nThreads, int startTime)
 {
     PCB *p = malloc(sizeof(PCB));
-    if (p == NULL)
-        return NULL;
+    if(p == NULL)
+    {
+        fprintf(stderr, "Erro ao criar processo %d\n", pid);
+        exit(EXIT_FAILURE);
+    }
 
     p->pid = pid;
     p->tempoTotal = tempoTotal;
@@ -38,12 +41,10 @@ PCB *criaProcesso(int pid, int tempoTotal, int prioridade, int nThreads, int sta
     pthread_cond_init(&p->cv, NULL);
 
     p->threadIds = malloc(sizeof(pthread_t) * nThreads);
-    if (p->threadIds == NULL)
+    if(p->threadIds == NULL)
     {
-        pthread_cond_destroy(&p->cv);
-        pthread_mutex_destroy(&p->mutex);
-        free(p);
-        return NULL;
+        fprintf(stderr, "Erro ao criar threadIds do processo %d\n", pid);
+        exit(EXIT_FAILURE);
     }
 
     return p;
@@ -91,12 +92,55 @@ int consomeTempoProcesso(PCB *pcb, int milissegundos)
     return tempoRestante;
 }
 
-void setThreadId(PCB *pcb, int indice, pthread_t threadId);
-pthread_t getThreadId(PCB *pcb, int indice);
-int getPid(const PCB *pcb);
-int getPrioridade(const PCB *pcb);
-int getTempoRestante(PCB *pcb);
-EstadoProcesso getEstadoProcesso(PCB *pcb);
-int getStartTime(const PCB *pcb);
-int getNumeroThreads(const PCB *pcb);
-pthread_t *getThreadIds(PCB *pcb);
+EstadoProcesso aguardaExecucaoOuFimProcesso(PCB *pcb)
+{
+    pthread_mutex_lock(&pcb->mutex);
+    while (pcb->estado == READY) {
+        pthread_cond_wait(&pcb->cv, &pcb->mutex);
+    }
+    EstadoProcesso atual = pcb->estado;
+    pthread_mutex_unlock(&pcb->mutex);
+    return atual;
+}
+
+void setThreadIdProcesso(PCB *pcb, int indice, pthread_t threadId) //não precisa de lock (só é escrito uma vez, sequencialmente, antes de o processo entrar na fila de prontos. Não há concorrência ali ainda).
+{
+    pcb->threadIds[indice] = threadId;
+}
+
+pthread_t getThreadIdProcesso(PCB *pcb, int indice) //não precisa de lock
+{
+    return pcb->threadIds[indice];
+}
+int getPidProcesso(PCB *pcb)
+{
+    return pcb->pid;
+}
+int getPrioridadeProcesso(PCB *pcb)
+{
+    return pcb->prioridade;
+}
+int getTempoRestanteProcesso(PCB *pcb)
+{
+    pthread_mutex_lock(&pcb->mutex);
+    int tempoRestante = pcb->tempoRestante;
+    pthread_mutex_unlock(&pcb->mutex);
+
+    return tempoRestante;
+}
+EstadoProcesso getEstadoProcesso(PCB *pcb)
+{
+    pthread_mutex_lock(&pcb->mutex);
+    EstadoProcesso estado = pcb->estado;
+    pthread_mutex_unlock(&pcb->mutex);
+
+    return estado;
+}
+int getStartTimeProcesso(PCB *pcb)
+{
+    return pcb->startTime;
+}
+int getNumeroThreadsProcesso(PCB *pcb)
+{
+    return pcb->nThreads;
+}

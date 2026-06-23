@@ -23,7 +23,7 @@ struct pcb
 PCB *criaProcesso(int pid, int tempoTotal, int prioridade, int nThreads, int startTime)
 {
     PCB *p = malloc(sizeof(PCB));
-    if(p == NULL)
+    if (p == NULL)
     {
         fprintf(stderr, "Erro ao criar processo %d\n", pid);
         exit(EXIT_FAILURE);
@@ -41,7 +41,7 @@ PCB *criaProcesso(int pid, int tempoTotal, int prioridade, int nThreads, int sta
     pthread_cond_init(&p->cv, NULL);
 
     p->threadIds = malloc(sizeof(pthread_t) * nThreads);
-    if(p->threadIds == NULL)
+    if (p->threadIds == NULL)
     {
         fprintf(stderr, "Erro ao criar threadIds do processo %d\n", pid);
         exit(EXIT_FAILURE);
@@ -52,7 +52,8 @@ PCB *criaProcesso(int pid, int tempoTotal, int prioridade, int nThreads, int sta
 
 void destroiProcesso(PCB *pcb)
 {
-    if(pcb!=NULL) {
+    if (pcb != NULL)
+    {
         pthread_cond_destroy(&pcb->cv);
         pthread_mutex_destroy(&pcb->mutex);
         free(pcb->threadIds);
@@ -62,7 +63,7 @@ void destroiProcesso(PCB *pcb)
 
 void setEstadoProcesso(PCB *pcb, EstadoProcesso estado)
 {
-   pthread_mutex_lock(&pcb->mutex);
+    pthread_mutex_lock(&pcb->mutex);
 
     pcb->estado = estado;
 
@@ -82,7 +83,8 @@ int consomeTempoProcesso(PCB *pcb, int milissegundos)
 {
     pthread_mutex_lock(&pcb->mutex);
     pcb->tempoRestante -= milissegundos;
-    if(pcb->tempoRestante <= 0) {
+    if (pcb->tempoRestante <= 0)
+    {
         pcb->tempoRestante = 0;
         terminaProcesso(pcb);
     }
@@ -95,7 +97,8 @@ int consomeTempoProcesso(PCB *pcb, int milissegundos)
 EstadoProcesso aguardaExecucaoOuFimProcesso(PCB *pcb)
 {
     pthread_mutex_lock(&pcb->mutex);
-    while (pcb->estado == READY) {
+    while (pcb->estado == READY)
+    {
         pthread_cond_wait(&pcb->cv, &pcb->mutex);
     }
     EstadoProcesso atual = pcb->estado;
@@ -103,12 +106,25 @@ EstadoProcesso aguardaExecucaoOuFimProcesso(PCB *pcb)
     return atual;
 }
 
-void setThreadIdProcesso(PCB *pcb, int indice, pthread_t threadId) //não precisa de lock (só é escrito uma vez, sequencialmente, antes de o processo entrar na fila de prontos. Não há concorrência ali ainda).
+// bloqueia ate o processo terminar (usado pelo escalonador no FCFS)
+void aguardaFimProcesso(PCB *pcb)
+{
+    pthread_mutex_lock(&pcb->mutex);
+
+    while (pcb->estado != FINISHED)
+    {
+        pthread_cond_wait(&pcb->cv, &pcb->mutex);
+    }
+
+    pthread_mutex_unlock(&pcb->mutex);
+}
+
+void setThreadIdProcesso(PCB *pcb, int indice, pthread_t threadId) // não precisa de lock (só é escrito uma vez, sequencialmente, antes de o processo entrar na fila de prontos. Não há concorrência ali ainda).
 {
     pcb->threadIds[indice] = threadId;
 }
 
-pthread_t getThreadIdProcesso(PCB *pcb, int indice) //não precisa de lock
+pthread_t getThreadIdProcesso(PCB *pcb, int indice) // não precisa de lock
 {
     return pcb->threadIds[indice];
 }

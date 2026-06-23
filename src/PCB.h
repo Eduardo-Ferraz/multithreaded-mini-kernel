@@ -11,6 +11,7 @@ void destroiProcesso(PCB *pcb);
 void setEstadoProcesso(PCB *pcb, EstadoProcesso state);
 int consomeTempoProcesso(PCB *pcb, int milisegundos);
 EstadoProcesso aguardaExecucaoOuFimProcesso(PCB *pcb);
+void aguardaFimProcesso(PCB *pcb);
 void setThreadIdProcesso(PCB *pcb, int indice, pthread_t threadId);
 pthread_t getThreadIdProcesso(PCB *pcb, int indice);
 int getPidProcesso(PCB *pcb);
@@ -19,6 +20,5 @@ int getTempoRestanteProcesso(PCB *pcb);
 EstadoProcesso getEstadoProcesso(PCB *pcb);
 int getStartTimeProcesso(PCB *pcb);
 int getNumeroThreadsProcesso(PCB *pcb);
-
 
 #endif

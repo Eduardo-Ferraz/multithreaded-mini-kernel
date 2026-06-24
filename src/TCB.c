@@ -18,7 +18,9 @@ TCB *criaTCB(PCB *pcb, int indice)
     }
 
     tcb->pcb = pcb;
-    tcb->indice;
+    tcb->indice = indice;
+
+    return tcb;
 }
 
 void destroiTCB(TCB *tcb)

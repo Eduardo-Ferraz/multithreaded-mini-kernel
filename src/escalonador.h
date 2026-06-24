@@ -3,7 +3,8 @@
 
 #include "FilaProntos.h"
 
-// rotina de thread do escalonador FCFS (arg = FilaProntos *)
+// rotinas de thread dos escalonadores (arg = FilaProntos *)
 void *escalonadorFCFS(void *arg);
+void *escalonadorRR(void *arg);
 
 #endif

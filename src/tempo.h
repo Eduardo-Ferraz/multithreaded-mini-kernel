@@ -4,7 +4,7 @@
 // marca o instante inicial
 void inicia_relogio(void);
 
-// milissegundos decorridos desde inicia_relogio()
+// milissegundos decorridos desde inicia_relogio
 long agora_ms(void);
 
 // bloqueia a thread

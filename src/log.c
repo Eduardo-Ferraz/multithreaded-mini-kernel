@@ -3,8 +3,8 @@
 #include <stdio.h>
 #include <stdarg.h>
 
-// buffer de log: vetor fixo de linhas (suficiente para qualquer caso de teste).
-// Protegido por mutex porque escalonador e workers podem registrar juntos.
+// buffer de log com vetor fixo de linhas, suficiente para qualquer caso de teste
+// protegido por mutex porque escalonador e workers podem registrar juntos
 #define MAX_LINHAS 8192
 #define TAM_LINHA 128
 

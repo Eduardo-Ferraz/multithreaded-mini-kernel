@@ -9,7 +9,7 @@ struct filaProntos
     int capacidade;
     int inicio;    // posicao do primeiro elemento
     int qtd;       // quantidade atual de elementos
-    int encerrada; // flag de encerramento (shutdown)
+    int encerrada; // flag de encerramento
 
     pthread_mutex_t mutex;
     pthread_cond_t naoVazia;
@@ -57,7 +57,7 @@ void enfileira(FilaProntos *fila, PCB *processo)
 {
     pthread_mutex_lock(&fila->mutex);
 
-    if (fila->qtd < fila->capacidade) // com capacidade = n, nunca deve encher
+    if (fila->qtd < fila->capacidade) // com capacidade n a fila nunca deve encher
     {
         int fim = (fila->inicio + fila->qtd) % fila->capacidade;
         fila->buffer[fim] = processo;
@@ -68,7 +68,7 @@ void enfileira(FilaProntos *fila, PCB *processo)
     pthread_mutex_unlock(&fila->mutex);
 }
 
-// remove o primeiro elemento; so deve ser chamada com o mutex ja travado
+// remove o primeiro elemento, so deve ser chamada com o mutex ja travado
 static PCB *removeInicio(FilaProntos *fila)
 {
     PCB *p = fila->buffer[fila->inicio];
@@ -83,7 +83,9 @@ PCB *desenfileira(FilaProntos *fila)
 
     PCB *p = NULL;
     if (fila->qtd > 0)
+    {
         p = removeInicio(fila);
+    }
 
     pthread_mutex_unlock(&fila->mutex);
     return p;
@@ -94,14 +96,61 @@ PCB *desenfileiraEspera(FilaProntos *fila)
     pthread_mutex_lock(&fila->mutex);
 
     while (fila->qtd == 0 && !fila->encerrada)
+    {
         pthread_cond_wait(&fila->naoVazia, &fila->mutex);
+    }
 
     PCB *p = NULL;
     if (fila->qtd > 0) // se vazia e encerrada, retorna NULL
+    {
         p = removeInicio(fila);
+    }
 
     pthread_mutex_unlock(&fila->mutex);
     return p;
+}
+
+// bloqueia ate ter processo ou encerrar e remove o de maior prioridade
+// menor numero, no empate fica com o mais antigo na fila
+PCB *desenfileiraPrioridade(FilaProntos *fila)
+{
+    // não mexer
+
+    pthread_mutex_lock(&fila->mutex);
+
+    while (fila->qtd == 0 && !fila->encerrada)
+    {
+        pthread_cond_wait(&fila->naoVazia, &fila->mutex);
+    }
+
+    PCB *escolhido = NULL;
+    if (fila->qtd > 0)
+    {
+        int melhor = 0;
+        for (int i = 1; i < fila->qtd; i++)
+        {
+            PCB *cand = fila->buffer[(fila->inicio + i) % fila->capacidade];
+            PCB *atual = fila->buffer[(fila->inicio + melhor) % fila->capacidade];
+            if (getPrioridadeProcesso(cand) < getPrioridadeProcesso(atual))
+            {
+                melhor = i;
+            }
+        }
+
+        escolhido = fila->buffer[(fila->inicio + melhor) % fila->capacidade];
+
+        // remove o escolhido deslocando os seguintes uma posicao para tras
+        for (int j = melhor; j < fila->qtd - 1; j++)
+        {
+            int a = (fila->inicio + j) % fila->capacidade;
+            int b = (fila->inicio + j + 1) % fila->capacidade;
+            fila->buffer[a] = fila->buffer[b];
+        }
+        fila->qtd--;
+    }
+
+    pthread_mutex_unlock(&fila->mutex);
+    return escolhido;
 }
 
 int removeProcesso(FilaProntos *fila, PCB *processo)
@@ -114,7 +163,7 @@ int removeProcesso(FilaProntos *fila, PCB *processo)
         int pos = (fila->inicio + i) % fila->capacidade;
         if (fila->buffer[pos] == processo)
         {
-            // desloca os elementos seguintes uma posicao para tras (mantem a ordem)
+            // desloca os elementos seguintes uma posicao para tras mantendo a ordem
             for (int j = i; j < fila->qtd - 1; j++)
             {
                 int atual = (fila->inicio + j) % fila->capacidade;
@@ -137,7 +186,9 @@ PCB *espiaProcesso(FilaProntos *fila, int posicao)
 
     PCB *p = NULL;
     if (posicao >= 0 && posicao < fila->qtd)
+    {
         p = fila->buffer[(fila->inicio + posicao) % fila->capacidade];
+    }
 
     pthread_mutex_unlock(&fila->mutex);
     return p;

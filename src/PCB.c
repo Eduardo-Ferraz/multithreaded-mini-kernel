@@ -68,7 +68,9 @@ void setEstadoProcesso(PCB *pcb, EstadoProcesso estado)
     pcb->estado = estado;
 
     if (estado == RUNNING)
+    {
         pthread_cond_broadcast(&pcb->cv);
+    }
 
     pthread_mutex_unlock(&pcb->mutex);
 }
@@ -106,7 +108,7 @@ EstadoProcesso aguardaExecucaoOuFimProcesso(PCB *pcb)
     return atual;
 }
 
-// bloqueia ate o processo terminar (usado pelo escalonador no FCFS)
+// bloqueia ate o processo terminar usado pelo escalonador no FCFS
 void aguardaFimProcesso(PCB *pcb)
 {
     pthread_mutex_lock(&pcb->mutex);
@@ -119,7 +121,7 @@ void aguardaFimProcesso(PCB *pcb)
     pthread_mutex_unlock(&pcb->mutex);
 }
 
-void setThreadIdProcesso(PCB *pcb, int indice, pthread_t threadId) // não precisa de lock (só é escrito uma vez, sequencialmente, antes de o processo entrar na fila de prontos. Não há concorrência ali ainda).
+void setThreadIdProcesso(PCB *pcb, int indice, pthread_t threadId) // não precisa de lock pois é escrito uma vez antes de entrar na fila
 {
     pcb->threadIds[indice] = threadId;
 }

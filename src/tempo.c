@@ -24,7 +24,7 @@ long agora_ms(void)
 
 void dorme_ms(long ms)
 {
-    // usleep pode falhar com valores >= 1.000.000 us, entao dorme em fatias
+    // usleep pode falhar com valores muito grandes entao dorme em fatias
     while (ms > 0)
     {
         long fatia = (ms > 500) ? 500 : ms;

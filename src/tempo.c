@@ -5,7 +5,7 @@
 static long inicio = 0;
 
 // tempo absoluto atual em ms
-static long relogio_ms(void)
+static long relogio_ms(void) //chamar exatamente uma vez, em main(), antes de criar qualquer thread.
 {
     struct timeval tv;
     gettimeofday(&tv, NULL);

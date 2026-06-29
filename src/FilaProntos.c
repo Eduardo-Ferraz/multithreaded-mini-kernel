@@ -2,6 +2,7 @@
 #include <pthread.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <limits.h>
 
 struct filaProntos
 {
@@ -216,4 +217,31 @@ void encerraFila(FilaProntos *fila)
     fila->encerrada = 1;
     pthread_cond_broadcast(&fila->naoVazia);
     pthread_mutex_unlock(&fila->mutex);
+}
+
+// menor numero de prioridade presente na fila, INT_MAX se vazia
+int prioridadeMaisAltaNaFila(FilaProntos *fila)
+{
+    pthread_mutex_lock(&fila->mutex);
+
+    int n = tamanhoFila(fila);
+    int melhor = INT_MAX;
+
+    for (int i = 0; i < n; i++)
+    {
+        PCB *p = NULL;
+        if (i >= 0 && i < fila->qtd)
+        {
+            p = fila->buffer[(fila->inicio + i) % fila->capacidade];
+        }
+
+        if (p != NULL && getPrioridadeProcesso(p) < melhor)
+        {
+            melhor = getPrioridadeProcesso(p);
+        }
+    }
+
+    pthread_mutex_unlock(&fila->mutex);
+
+    return melhor;
 }

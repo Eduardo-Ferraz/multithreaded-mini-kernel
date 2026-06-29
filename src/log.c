@@ -8,9 +8,9 @@
 #define MAX_LINHAS 8192
 #define TAM_LINHA 128
 
-char linhas[MAX_LINHAS][TAM_LINHA];
-int n = 0;
-pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
+static char linhas[MAX_LINHAS][TAM_LINHA];
+static int n = 0;
+static pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
 
 void registraLog(const char *fmt, ...)
 {

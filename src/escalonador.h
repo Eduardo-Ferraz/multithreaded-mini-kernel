@@ -6,7 +6,8 @@
 // rotinas de thread dos escalonadores, arg e a FilaProntos
 void *escalonadorFCFS(void *arg);
 void *escalonadorRR(void *arg);
-
 void *escalonadorPrioridade(void *arg);
+
+void *executaThread(void *arg);
 
 #endif

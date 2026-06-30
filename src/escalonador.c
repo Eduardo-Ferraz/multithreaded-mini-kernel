@@ -1,5 +1,6 @@
 #include "escalonador.h"
 #include "PCB.h"
+#include "TCB.h"
 #include "tempo.h"
 #include "log.h"
 
@@ -97,5 +98,27 @@ void *escalonadorPrioridade(void *arg)
     }
 
     registraLog("Escalonador terminou execução de todos processos");
+    return NULL;
+}
+
+void *executaThread(void *arg)
+{
+    TCB *tcb = (TCB *)arg;
+
+    PCB *pcb = getPCB(tcb);
+
+    while (1)
+    {
+        EstadoProcesso estado = aguardaExecucaoOuFimProcesso(pcb);
+        if (estado == FINISHED)
+        {
+            break;
+        }
+
+        dorme_ms(QUANTUM_MS);
+    }
+
+    destroiTCB(tcb);
+
     return NULL;
 }

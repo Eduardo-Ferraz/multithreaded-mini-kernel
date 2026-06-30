@@ -6,6 +6,13 @@ PCB **leEntrada(const char *arquivo, int *n, int *politica)
 {
     FILE *f = fopen(arquivo, "r");
 
+    if (f == NULL)
+    {
+        fprintf(stderr, "erro ao abrir o arquivo\n");
+
+        exit(EXIT_FAILURE);
+    }
+
     fscanf(f, "%d", n);
 
     PCB **lista = malloc(sizeof(PCB *) * (*n));

@@ -59,6 +59,12 @@ static void geradorChegada(PCB **lista, int n, FilaProntos *fila)
 int main(int argc, char *argv[])
 {
 
+    if (argc < 2)
+    {
+        fprintf(stderr, "erro de uso\n");
+        return 1;
+    }
+
     inicia_relogio();
 
     int n, politica;

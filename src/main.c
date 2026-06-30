@@ -83,15 +83,27 @@ int main(int argc, char *argv[])
         escalonador = escalonadorPrioridade;
     }
 
-    pthread_t threadEscalonador;
-    pthread_create(&threadEscalonador, NULL, escalonador, fila);
+    // cria um processador por CPU, todos sobre a mesma fila
+    Processador cpus[NUM_CPUS];
+    pthread_t threadsCPU[NUM_CPUS];
+    for (int c = 0; c < NUM_CPUS; c++)
+    {
+        cpus[c].id = c;
+        cpus[c].fila = fila;
+        pthread_create(&threadsCPU[c], NULL, escalonador, &cpus[c]);
+    }
 
     // gera as chegadas e enfileira os processos
     geradorChegada(lista, n, fila);
 
-    // todos os processos ja chegaram, encerra a fila para o escalonador sair
+    // todos os processos ja chegaram, encerra a fila para os escalonadores sairem
     encerraFila(fila);
-    pthread_join(threadEscalonador, NULL);
+    for (int c = 0; c < NUM_CPUS; c++)
+    {
+        pthread_join(threadsCPU[c], NULL);
+    }
+
+    registraLog("Escalonador terminou execução de todos processos");
 
     // espera todas as threads de todos os processos terminarem
     for (int i = 0; i < n; i++)

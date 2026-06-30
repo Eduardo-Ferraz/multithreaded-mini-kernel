@@ -22,6 +22,9 @@ PCB *desenfileiraEspera(FilaProntos *fila);
 // como desenfileiraEspera mas remove o de maior prioridade menor numero
 PCB *desenfileiraPrioridade(FilaProntos *fila);
 
+// menor numero de prioridade presente na fila, INT_MAX se vazia
+int prioridadeMaisAltaNaFila(FilaProntos *fila);
+
 // remove um processo especifico usado na preempcao, 1 se removeu, 0 se nao achou
 int removeProcesso(FilaProntos *fila, PCB *processo);
 

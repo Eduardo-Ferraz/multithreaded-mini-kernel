@@ -224,24 +224,16 @@ int prioridadeMaisAltaNaFila(FilaProntos *fila)
 {
     pthread_mutex_lock(&fila->mutex);
 
-    int n = tamanhoFila(fila);
     int melhor = INT_MAX;
-
-    for (int i = 0; i < n; i++)
+    for (int i = 0; i < fila->qtd; i++)
     {
-        PCB *p = NULL;
-        if (i >= 0 && i < fila->qtd)
-        {
-            p = fila->buffer[(fila->inicio + i) % fila->capacidade];
-        }
-
-        if (p != NULL && getPrioridadeProcesso(p) < melhor)
+        PCB *p = fila->buffer[(fila->inicio + i) % fila->capacidade];
+        if (getPrioridadeProcesso(p) < melhor)
         {
             melhor = getPrioridadeProcesso(p);
         }
     }
 
     pthread_mutex_unlock(&fila->mutex);
-
     return melhor;
 }

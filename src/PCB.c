@@ -75,21 +75,27 @@ void setEstadoProcesso(PCB *pcb, EstadoProcesso estado)
     pthread_mutex_unlock(&pcb->mutex);
 }
 
-static void terminaProcesso(PCB *pcb)
-{
-    pcb->estado = FINISHED;
-    pthread_cond_broadcast(&pcb->cv);
-}
-
 int consomeTempoProcesso(PCB *pcb, int milissegundos)
 {
     pthread_mutex_lock(&pcb->mutex);
-    pcb->tempoRestante -= milissegundos;
-    if (pcb->tempoRestante <= 0)
+
+    // so a thread que pega o processo ainda RUNNING desconta a fatia
+    // as outras threads do mesmo processo apenas cedem sem descontar de novo
+    if (pcb->estado == RUNNING)
     {
-        pcb->tempoRestante = 0;
-        terminaProcesso(pcb);
+        pcb->tempoRestante -= milissegundos;
+        if (pcb->tempoRestante <= 0)
+        {
+            pcb->tempoRestante = 0;
+            pcb->estado = FINISHED;
+        }
+        else
+        {
+            pcb->estado = READY;
+        }
+        pthread_cond_broadcast(&pcb->cv);
     }
+
     int tempoRestante = pcb->tempoRestante;
     pthread_mutex_unlock(&pcb->mutex);
 
@@ -108,12 +114,32 @@ EstadoProcesso aguardaExecucaoOuFimProcesso(PCB *pcb)
     return atual;
 }
 
-// bloqueia ate o processo terminar usado pelo escalonador no FCFS
+// mantem o processo rodando fatia a fatia ate terminar
+// usado no FCFS
+// como a thread cede a CPU a cada fatia, aqui reconcedemos ate FINISHED
 void aguardaFimProcesso(PCB *pcb)
 {
     pthread_mutex_lock(&pcb->mutex);
 
     while (pcb->estado != FINISHED)
+    {
+        if (pcb->estado == READY)
+        {
+            pcb->estado = RUNNING;
+            pthread_cond_broadcast(&pcb->cv);
+        }
+        pthread_cond_wait(&pcb->cv, &pcb->mutex);
+    }
+
+    pthread_mutex_unlock(&pcb->mutex);
+}
+
+// espera o processo ceder a CPU ou terminar, usado no RR e na prioridade
+void aguardaCedeuOuFimProcesso(PCB *pcb)
+{
+    pthread_mutex_lock(&pcb->mutex);
+
+    while (pcb->estado == RUNNING)
     {
         pthread_cond_wait(&pcb->cv, &pcb->mutex);
     }

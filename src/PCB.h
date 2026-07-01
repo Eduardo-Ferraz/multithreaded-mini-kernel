@@ -12,6 +12,7 @@ void setEstadoProcesso(PCB *pcb, EstadoProcesso state);
 int consomeTempoProcesso(PCB *pcb, int milisegundos);
 EstadoProcesso aguardaExecucaoOuFimProcesso(PCB *pcb);
 void aguardaFimProcesso(PCB *pcb);
+void aguardaCedeuOuFimProcesso(PCB *pcb);
 void setThreadIdProcesso(PCB *pcb, int indice, pthread_t threadId);
 pthread_t getThreadIdProcesso(PCB *pcb, int indice);
 int getPidProcesso(PCB *pcb);

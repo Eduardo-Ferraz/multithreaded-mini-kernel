@@ -25,13 +25,8 @@ void *escalonadorFCFS(void *arg)
         setEstadoProcesso(pcb, RUNNING);
         registraLog("[FCFS] Executando processo PID %d" TAG_CPU, getPidProcesso(pcb), cpu->id);
 
-        // roda ate o tempo restante zerar, descontando em fatias
-        int restante;
-        do
-        {
-            dorme_ms(QUANTUM_MS);
-            restante = consomeTempoProcesso(pcb, QUANTUM_MS);
-        } while (restante > 0);
+        // as threads descontam o tempo, aqui so esperamos o processo terminar
+        aguardaFimProcesso(pcb);
 
         registraLog("[FCFS] Processo PID %d finalizado", getPidProcesso(pcb));
     }
@@ -46,23 +41,23 @@ void *escalonadorRR(void *arg)
     FilaProntos *fila = cpu->fila;
     PCB *pcb;
 
+    // IF FINISHED ?
+
     while ((pcb = desenfileiraEspera(fila)) != NULL)
     {
         setEstadoProcesso(pcb, RUNNING);
         registraLog("[RR] Executando processo PID %d com quantum %dms" TAG_CPU, getPidProcesso(pcb), QUANTUM_MS, cpu->id);
 
-        // passa um quantum e desconta esse tempo do processo
-        dorme_ms(QUANTUM_MS);
-        int restante = consomeTempoProcesso(pcb, QUANTUM_MS);
+        // as threads descontam a fatia e cedem, aqui so esperamos ceder ou terminar
+        aguardaCedeuOuFimProcesso(pcb);
 
-        if (restante == 0)
+        if (getEstadoProcesso(pcb) == FINISHED)
         {
             registraLog("[RR] Processo PID %d finalizado", getPidProcesso(pcb));
         }
         else
         {
-            // ainda tem tempo entao preempta e reinsere no fim da fila
-            setEstadoProcesso(pcb, READY);
+            // cedeu com tempo restante entao reinsere no fim da fila
             enfileira(fila, pcb);
         }
     }
@@ -78,6 +73,8 @@ void *escalonadorPrioridade(void *arg)
     FilaProntos *fila = cpu->fila;
     PCB *pcb;
 
+    // IF FINISHED ?
+
     while ((pcb = desenfileiraPrioridade(fila)) != NULL)
     {
         setEstadoProcesso(pcb, RUNNING);
@@ -86,21 +83,25 @@ void *escalonadorPrioridade(void *arg)
         int preemptado = 0;
         while (!preemptado)
         {
-            dorme_ms(QUANTUM_MS);
-            int restante = consomeTempoProcesso(pcb, QUANTUM_MS);
+            // espera a thread ceder a fatia ou terminar
+            aguardaCedeuOuFimProcesso(pcb);
 
-            if (restante == 0)
+            if (getEstadoProcesso(pcb) == FINISHED)
             {
                 registraLog("[PRIORITY] Processo PID %d finalizado", getPidProcesso(pcb));
                 break;
             }
 
-            // chegou alguem de prioridade estritamente maior entao preempta
+            // cedeu, se chegou alguem de prioridade estritamente maior preempta
             if (prioridadeMaisAltaNaFila(fila) < getPrioridadeProcesso(pcb))
             {
-                setEstadoProcesso(pcb, READY);
                 enfileira(fila, pcb);
                 preemptado = 1;
+            }
+            else
+            {
+                // continua com mesmo processo e reconcede a proxima fatia
+                setEstadoProcesso(pcb, RUNNING);
             }
         }
     }
@@ -122,7 +123,9 @@ void *executaThread(void *arg)
             break;
         }
 
+        // Executa fatia e desconta tempo do processo
         dorme_ms(QUANTUM_MS);
+        consomeTempoProcesso(pcb, QUANTUM_MS);
     }
 
     destroiTCB(tcb);

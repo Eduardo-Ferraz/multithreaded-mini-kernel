@@ -19,6 +19,13 @@ PCB *desenfileira(FilaProntos *fila);
 // retorna NULL apenas quando a fila esta vazia e ja foi encerrada
 PCB *desenfileiraEspera(FilaProntos *fila);
 
+// co-atendimento no multiprocessador
+// oferece e retira um processo para outra CPU ajudar a atender
+// desenfileiraOuAjuda bloqueia ate haver processo na fila ou oferta ou encerramento
+void ofereceCompartilhavel(FilaProntos *fila, PCB *processo);
+void limpaCompartilhavel(FilaProntos *fila, PCB *processo);
+PCB *desenfileiraOuAjuda(FilaProntos *fila, int *ehAjuda);
+
 // como desenfileiraEspera mas remove o de maior prioridade menor numero
 PCB *desenfileiraPrioridade(FilaProntos *fila);
 

@@ -20,6 +20,43 @@ void *escalonadorFCFS(void *arg)
     FilaProntos *fila = cpu->fila;
     PCB *pcb;
 
+#if NUM_CPUS > 1
+    while (1)
+    {
+        int ehAjuda;
+        pcb = desenfileiraOuAjuda(fila, &ehAjuda);
+        if (pcb == NULL)
+        {
+            break; // fila encerrada e vazia
+        }
+
+        if (ehAjuda)
+        {
+            // co-atende um processo multi-thread que esta rodando sozinho
+            if (podeAjudarProcesso(pcb))
+            {
+                iniciaServicoProcesso(pcb);
+                registraLog("[FCFS] Executando processo PID %d" TAG_CPU, getPidProcesso(pcb), cpu->id);
+                aguardaFimProcesso(pcb);
+                terminaServicoProcesso(pcb);
+            }
+            continue;
+        }
+
+        // atende como primario, se esta sozinho e tem varias threads oferece a outra CPU
+        iniciaServicoProcesso(pcb);
+        if (getNumeroThreadsProcesso(pcb) > 1 && filaVazia(fila))
+        {
+            ofereceCompartilhavel(fila, pcb);
+        }
+        setEstadoProcesso(pcb, RUNNING);
+        registraLog("[FCFS] Executando processo PID %d" TAG_CPU, getPidProcesso(pcb), cpu->id);
+        aguardaFimProcesso(pcb);
+        limpaCompartilhavel(fila, pcb);
+        registraLog("[FCFS] Processo PID %d finalizado", getPidProcesso(pcb));
+        terminaServicoProcesso(pcb);
+    }
+#else
     while ((pcb = desenfileiraEspera(fila)) != NULL)
     {
         setEstadoProcesso(pcb, RUNNING);
@@ -30,6 +67,7 @@ void *escalonadorFCFS(void *arg)
 
         registraLog("[FCFS] Processo PID %d finalizado", getPidProcesso(pcb));
     }
+#endif
 
     return NULL;
 }

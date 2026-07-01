@@ -12,6 +12,8 @@ struct filaProntos
     int qtd;       // quantidade atual de elementos
     int encerrada; // flag de encerramento
 
+    PCB *compartilhavel; // processo multi-thread sozinho que outra CPU pode co-atender
+
     pthread_mutex_t mutex;
     pthread_cond_t naoVazia;
 };
@@ -36,6 +38,7 @@ FilaProntos *criaFilaProntos(int capacidade)
     fila->inicio = 0;
     fila->qtd = 0;
     fila->encerrada = 0;
+    fila->compartilhavel = NULL;
 
     pthread_mutex_init(&fila->mutex, NULL);
     pthread_cond_init(&fila->naoVazia, NULL);
@@ -105,6 +108,54 @@ PCB *desenfileiraEspera(FilaProntos *fila)
     if (fila->qtd > 0) // se vazia e encerrada, retorna NULL
     {
         p = removeInicio(fila);
+    }
+
+    pthread_mutex_unlock(&fila->mutex);
+    return p;
+}
+
+// oferece um processo para co-atendimento e acorda uma CPU que esteja ociosa
+void ofereceCompartilhavel(FilaProntos *fila, PCB *processo)
+{
+    pthread_mutex_lock(&fila->mutex);
+    fila->compartilhavel = processo;
+    pthread_cond_broadcast(&fila->naoVazia);
+    pthread_mutex_unlock(&fila->mutex);
+}
+
+// retira a oferta de co-atendimento se ainda for o processo dado
+void limpaCompartilhavel(FilaProntos *fila, PCB *processo)
+{
+    pthread_mutex_lock(&fila->mutex);
+    if (fila->compartilhavel == processo)
+    {
+        fila->compartilhavel = NULL;
+    }
+    pthread_mutex_unlock(&fila->mutex);
+}
+
+// bloqueia ate ter um processo da fila, uma oferta de co-atendimento, ou encerrar
+// ehAjuda recebe 1 quando o retorno e um processo para co-atender, 0 quando veio da fila
+PCB *desenfileiraOuAjuda(FilaProntos *fila, int *ehAjuda)
+{
+    pthread_mutex_lock(&fila->mutex);
+
+    while (fila->qtd == 0 && fila->compartilhavel == NULL && !fila->encerrada)
+    {
+        pthread_cond_wait(&fila->naoVazia, &fila->mutex);
+    }
+
+    PCB *p = NULL;
+    *ehAjuda = 0;
+    if (fila->qtd > 0)
+    {
+        p = removeInicio(fila);
+    }
+    else if (fila->compartilhavel != NULL)
+    {
+        p = fila->compartilhavel;
+        fila->compartilhavel = NULL; // a oferta e consumida por uma CPU so
+        *ehAjuda = 1;
     }
 
     pthread_mutex_unlock(&fila->mutex);

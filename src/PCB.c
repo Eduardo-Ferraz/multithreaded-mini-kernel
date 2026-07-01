@@ -15,6 +15,9 @@ struct pcb
 
     EstadoProcesso estado;
 
+    int servidores;       // quantas CPUs atendem este processo agora
+    int descontosNoPasso; // descontos ja feitos no passo atual, um por servidor
+
     pthread_mutex_t mutex;
     pthread_cond_t cv;
     pthread_t *threadIds;
@@ -36,6 +39,8 @@ PCB *criaProcesso(int pid, int tempoTotal, int prioridade, int nThreads, int sta
     p->nThreads = nThreads;
     p->startTime = startTime;
     p->estado = READY;
+    p->servidores = 0;
+    p->descontosNoPasso = 0;
 
     pthread_mutex_init(&p->mutex, NULL);
     pthread_cond_init(&p->cv, NULL);
@@ -79,19 +84,23 @@ int consomeTempoProcesso(PCB *pcb, int milissegundos)
 {
     pthread_mutex_lock(&pcb->mutex);
 
-    // so a thread que pega o processo ainda RUNNING desconta a fatia
-    // as outras threads do mesmo processo apenas cedem sem descontar de novo
+    // so desconta enquanto o processo esta RUNNING, evita desconto em dobro
+    // o passo so termina quando servidores threads descontaram, uma por CPU que atende
+    // com um servidor cede depois de uma fatia, com dois cede depois de duas
     if (pcb->estado == RUNNING)
     {
         pcb->tempoRestante -= milissegundos;
+        pcb->descontosNoPasso++;
         if (pcb->tempoRestante <= 0)
         {
             pcb->tempoRestante = 0;
             pcb->estado = FINISHED;
+            pcb->descontosNoPasso = 0;
         }
-        else
+        else if (pcb->descontosNoPasso >= pcb->servidores)
         {
             pcb->estado = READY;
+            pcb->descontosNoPasso = 0;
         }
         pthread_cond_broadcast(&pcb->cv);
     }
@@ -100,6 +109,31 @@ int consomeTempoProcesso(PCB *pcb, int milissegundos)
     pthread_mutex_unlock(&pcb->mutex);
 
     return tempoRestante;
+}
+
+// registra que mais uma CPU passou a atender o processo
+void iniciaServicoProcesso(PCB *pcb)
+{
+    pthread_mutex_lock(&pcb->mutex);
+    pcb->servidores++;
+    pthread_mutex_unlock(&pcb->mutex);
+}
+
+// registra que uma CPU parou de atender o processo
+void terminaServicoProcesso(PCB *pcb)
+{
+    pthread_mutex_lock(&pcb->mutex);
+    pcb->servidores--;
+    pthread_mutex_unlock(&pcb->mutex);
+}
+
+// diz se o processo ainda tem thread livre para outra CPU co-atender
+int podeAjudarProcesso(PCB *pcb)
+{
+    pthread_mutex_lock(&pcb->mutex);
+    int pode = pcb->servidores < pcb->nThreads && pcb->estado != FINISHED;
+    pthread_mutex_unlock(&pcb->mutex);
+    return pode;
 }
 
 EstadoProcesso aguardaExecucaoOuFimProcesso(PCB *pcb)
